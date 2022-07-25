@@ -1,18 +1,72 @@
 #!/bin/bash
-# Use SGDISK to create a GUID Partition Table
-# * Make sure to make the ESP as type EF00 or EFI system partition
-# * and the zfs partition bf00 or Solaris Root
-# * the swap partition 8200 or Linux swap
 
+# Colours
+YELLOW='\033[33m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+NC='\033[0m' # No Color
+
+# Bash function to check whether a package is installed
+check_package () {
+  # Setting a variable local to function
+  local array=()
+  for item in "$@"; do
+    local CHECK=$(command -v "$item")
+    if [ -z "$CHECK" ]; then
+      array+=("$item")
+    fi
+  done
+  # If array is not empty:
+  if [ -n "$array" ]; then
+    echo -e "${YELLOW}ERROR: The following required packages are not installed:"
+    for val in "${array[@]}"; do
+      echo "- $val"
+    done
+    echo -e "\nInstall them using hyour system package manager (linux)${NC}"
+    return 1
+  fi
+}
+
+check_variable () {
+  # Setting a variable local to function
+  local array=()
+  for item in "$@"; do
+    if [ -z "$item" ]; then
+      array+=("$item")
+    fi
+  done
+  # If array is not empty:
+  if [ -n "$array" ]; then
+    echo -e "${YELLOW}ERROR: The following required environment variables are not set:"
+    for val in "${array[@]}"; do
+      echo "- $val"
+    done
+    echo -e "\nSet these environment variables with \"export VARIABLE_NAME='variable value'\" and rerun the script.${NC}"
+    return 1
+  fi
+}
 
 # TODO: 
 # Required tools for installation:
-# zfs zpool dosfstools git
+# dosfstools (mkfs vfat)
+check_package zfs zpool git
+# Exit script, if function does not return code 0
+if ! [ $? = 0 ]; then
+    exit 1
+fi
+
 
 # TODO: Check if zfs modules are loaded
 
 # Variables used here are set in 0-set_vars.sh
+check_variable WORK_DIR POOL_NAME DISK_NAME  LOCALE_GEN KEYMAP TIMEZONE CREATE_USER USER_PW ROOT_PW
+# Exit script, if function does not return code 0
+if ! [ $? = 0 ]; then
+    exit 1
+fi
+
 DISK="/dev/disk/by-id/${DISK_NAME}"
+
 
 # Prompt here for user input!!!
 read -e -p "WARNING!!! Will wipe partition table of disk ${DISK} and create partitions. Continue? (y/n): " ANSWER
